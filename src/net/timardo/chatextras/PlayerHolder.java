@@ -45,10 +45,10 @@ public class PlayerHolder {
         if (afk) {
             String originalPrefix = api.getNametag(player).getPrefix();
             this.getData(player).originalPrefix = originalPrefix;
-            api.setPrefix(player, ChatColor.GRAY + "[AFK] " + ChatColor.RESET + originalPrefix);
+            Bukkit.getScheduler().runTask(ChatExtras.getInstance(), () -> api.setPrefix(player, ChatColor.GRAY + "[AFK] " + ChatColor.RESET + originalPrefix));
             Bukkit.broadcastMessage(ChatColor.GRAY + " * " + ChatColor.RESET + originalPrefix + player.getDisplayName() + ChatColor.GRAY + " is AFK.");
         } else if (this.getData(player).originalPrefix != null) {
-            api.setPrefix(player, this.getData(player).originalPrefix);
+            Bukkit.getScheduler().runTask(ChatExtras.getInstance(), () -> api.setPrefix(player, this.getData(player).originalPrefix));
             Bukkit.broadcastMessage(ChatColor.GRAY + " * " + ChatColor.RESET + this.getData(player).originalPrefix + player.getDisplayName() + ChatColor.GRAY + " is no longer AFK.");
         }
     }

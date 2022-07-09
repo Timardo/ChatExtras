@@ -25,12 +25,12 @@ public class EventListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent joinEvent) {
         Player player = joinEvent.getPlayer();
         ChannelPipeline pipeline = ((CraftPlayer)player).getHandle().b.b.m.pipeline();
-        pipeline.addBefore("packet_handler", player.getUniqueId().toString(), new ChannelDuplexHandler() {
+        pipeline.addBefore("packet_handler", "ChatExtras:" + player.getUniqueId().toString(), new ChannelDuplexHandler() {
             
             @Override
             public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
                 if (msg instanceof PacketPlayInFlying packet && packet.d()) { // hasRotation
-                    Bukkit.getScheduler().runTask(ChatExtras.getInstance(), () -> ChatExtras.playerHolder.setPlayerAFK(player, false)); // schedule task
+                    ChatExtras.playerHolder.setPlayerAFK(player, false);
                 }
                 
                 super.channelRead(ctx, msg);
@@ -42,10 +42,9 @@ public class EventListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent quitEvent) {
         Player player = quitEvent.getPlayer();
         Channel channel = ((CraftPlayer)player).getHandle().b.b.m;
-        channel.eventLoop().submit(() -> channel.pipeline().remove(player.getUniqueId().toString()));
+        channel.eventLoop().submit(() -> channel.pipeline().remove("ChatExtras:" + player.getUniqueId().toString()));
         ChatExtras.playerHolder.removePlayer(player);
     }
-
     
     @EventHandler
     public void onCommandEvent(PlayerCommandPreprocessEvent commandEvent) {
