@@ -1,5 +1,5 @@
 name: ChatExtras
-version: '1.0'
+version: '1.2'
 main: net.timardo.chatextras.ChatExtras
 api-version: 1.19
 authors: [ Timardo ]

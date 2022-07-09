@@ -27,8 +27,13 @@ public class CommandReply implements CommandExecutor {
         
         Player receiver = Bukkit.getPlayer(ChatExtras.playerHolder.getLastWhisper(player));
         
-        if (receiver != null && ChatExtras.playerHolder.isAfk(receiver)) {
-            sender.sendMessage(ChatColor.GRAY + " * " + ChatColor.RESET + NametagEdit.getApi().getNametag(receiver).getPrefix() + receiver.getDisplayName() + ChatColor.GRAY + " is currently " + ChatColor.YELLOW + "AFK" + ChatColor.GRAY + " and may not see your message.");
+        if (receiver != null) {
+            ChatExtras.playerHolder.setLastWhisper(player, receiver);
+            ChatExtras.playerHolder.setLastWhisper(receiver, player);
+            
+            if (ChatExtras.playerHolder.isAfk(receiver)) {
+                sender.sendMessage(ChatColor.GRAY + " * " + ChatColor.RESET + NametagEdit.getApi().getNametag(receiver).getPrefix() + receiver.getDisplayName() + ChatColor.GRAY + " is currently " + ChatColor.YELLOW + "AFK" + ChatColor.GRAY + " and may not see your message.");
+            }
         }
         
         player.performCommand("dm " + ChatExtras.playerHolder.getLastWhisper(player) + " " + String.join(" ", args));
