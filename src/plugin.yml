@@ -1,0 +1,17 @@
+name: ChatExtras
+version: '1.0'
+main: net.timardo.chatextras.ChatExtras
+api-version: 1.19
+authors: [ Timardo ]
+description: Very good chat plugin 10/10
+
+commands:
+   afk:
+      description: Toggles AFK status
+      usage: /<command>
+   r:
+      description: Replies to your latest conversation
+      usage: /<command> <message>
+   dm:
+      description: Sends a fancy direct message
+      usage: /<command> <player> <message>
