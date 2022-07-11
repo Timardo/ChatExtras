@@ -19,7 +19,7 @@ import net.minecraft.network.protocol.game.PacketPlayInFlying;
 
 public class EventListener implements Listener {
     
-    private static final String[] WHISPER_COMMANDS = new String[] {"w ", "tell ", "msg ", "dm "};
+    private static final String[] WHISPER_COMMANDS = new String[] {"w ", "tell ", "msg ", "minecraft:w ", "minecraft:tell ", "minecraft:msg ", "dm ", "chatextras:dm "};
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent joinEvent) {
@@ -50,13 +50,14 @@ public class EventListener implements Listener {
     public void onCommandEvent(PlayerCommandPreprocessEvent commandEvent) {
         String fullMessage = commandEvent.getMessage().substring(1);
         
-        if (!((fullMessage.startsWith("afk") && fullMessage.length() == 3) || fullMessage.startsWith("afk "))) {
+        if (!((fullMessage.startsWith("afk") && fullMessage.length() == 3) || fullMessage.startsWith("afk ") || fullMessage.startsWith("chatextras:afk"))) {
             ChatExtras.playerHolder.setPlayerAFK(commandEvent.getPlayer(), false);
         }
         
         if (StringUtils.startsWithAny(fullMessage, WHISPER_COMMANDS)) { // a whisper command
             Player sender = commandEvent.getPlayer();
             String[] args = fullMessage.split(" ", 3);
+            
             if (args.length <= 2) return; // only register last whispers for commands that actually send a message
             
             Player receiver = Bukkit.getPlayer(args[1]);

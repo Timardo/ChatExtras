@@ -1,6 +1,8 @@
 package net.timardo.chatextras;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
@@ -16,7 +18,7 @@ public class PlayerHolder {
     
     private Map<UUID, PlayerData> playerDataMap = new HashMap<UUID, PlayerData>();
     
-    public PlayerData getData(Player player) {
+    private PlayerData getData(Player player) {
         PlayerData data = this.playerDataMap.get(player.getUniqueId());
         
         if (data == null) {
@@ -45,10 +47,10 @@ public class PlayerHolder {
         if (afk) {
             String originalPrefix = api.getNametag(player).getPrefix();
             this.getData(player).originalPrefix = originalPrefix;
-            Bukkit.getScheduler().runTask(ChatExtras.getInstance(), () -> api.setPrefix(player, ChatColor.GRAY + "[AFK] " + ChatColor.RESET + originalPrefix));
+            Bukkit.getScheduler().runTask(ChatExtras.instance, () -> api.setPrefix(player, ChatColor.GRAY + "[AFK] " + ChatColor.RESET + originalPrefix));
             Bukkit.broadcastMessage(ChatColor.GRAY + " * " + ChatColor.RESET + originalPrefix + player.getDisplayName() + ChatColor.GRAY + " is AFK.");
         } else if (this.getData(player).originalPrefix != null) {
-            Bukkit.getScheduler().runTask(ChatExtras.getInstance(), () -> api.setPrefix(player, this.getData(player).originalPrefix));
+            Bukkit.getScheduler().runTask(ChatExtras.instance, () -> api.setPrefix(player, this.getData(player).originalPrefix));
             Bukkit.broadcastMessage(ChatColor.GRAY + " * " + ChatColor.RESET + this.getData(player).originalPrefix + player.getDisplayName() + ChatColor.GRAY + " is no longer AFK.");
         }
     }
@@ -74,10 +76,40 @@ public class PlayerHolder {
     }
 
     public void checkAfkPlayers() {
+        List<UUID> toBeRemoved = null;
+        
         for (Entry<UUID, PlayerData> entry : this.playerDataMap.entrySet()) {
             if (!entry.getValue().isAfk && entry.getValue().lastTimeActive + 300_000L <= System.currentTimeMillis()) {
-                this.setPlayerAFK(Bukkit.getPlayer(entry.getKey()), true);
+                Player bukkitPlayer = Bukkit.getPlayer(entry.getKey());
+                
+                 if (bukkitPlayer == null) {
+                     if (toBeRemoved == null) {
+                         toBeRemoved = new ArrayList<UUID>();
+                     }
+                     
+                     toBeRemoved.add(entry.getKey());
+                     continue;
+                 }
+                
+                this.setPlayerAFK(bukkitPlayer, true);
             }
         }
+        
+        if (toBeRemoved != null) {
+            toBeRemoved.forEach(uuid -> this.playerDataMap.remove(uuid)); // safety check for UUIDs of offline players left in map after some magic reason (like PlayerQuitEvent not firing)
+        }
     }
+    
+    private static class PlayerData {
+        
+        private boolean isAfk;
+        private String lastWhisper;
+        private String originalPrefix;
+        private long lastTimeActive;
+        
+        public boolean hasLastWhisper() {
+            return !(this.lastWhisper == null || this.lastWhisper.isEmpty());
+        }
+    }
+
 }

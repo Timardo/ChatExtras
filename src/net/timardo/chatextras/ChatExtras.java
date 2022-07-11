@@ -4,6 +4,10 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.Logger;
+import org.apache.logging.log4j.core.filter.AbstractFilter;
 import org.bukkit.Bukkit;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventException;
@@ -22,18 +26,29 @@ import com.google.common.reflect.ClassPath.ClassInfo;
 
 public class ChatExtras extends JavaPlugin {
     
-    private static ChatExtras instance;
+    public static ChatExtras instance;
+    private static final String[] COMMANDS_FILTER = new String[] {"/dm ", "/chatextras:dm ", "/r ", "/chatextras:r "};
     public static PlayerHolder playerHolder = new PlayerHolder();
     
-    @SuppressWarnings("deprecation")
     @Override
     public void onEnable() {
         instance = this;
-        Bukkit.getPluginManager().registerEvents(new EventListener(), this);
+        this.registerCommands();
+        this.registerEventHandlers();
+        this.registerLoggerFilter();
+        Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () -> playerHolder.checkAfkPlayers(), 0, 20);
+        System.out.println("ChatExtras finished initialization");
+    }
+    
+    private void registerCommands() {
         this.getCommand("afk").setExecutor(new CommandAfk());
         this.getCommand("r").setExecutor(new CommandReply());
         this.getCommand("dm").setExecutor(new CommandCustomDirectMessage());
-        
+    }
+
+    @SuppressWarnings("deprecation")
+    private void registerEventHandlers() {
+        Bukkit.getPluginManager().registerEvents(new EventListener(), this);
         // God damn it Bukkit, is it really that hard to add handler lists for abstract event superclasses...
         try {
             System.out.println("Registering handlers...");
@@ -93,13 +108,15 @@ public class ChatExtras extends JavaPlugin {
         } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
-        
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () -> playerHolder.checkAfkPlayers(), 0, 20);
-        
-        System.out.println("ChatExtras finished initialization");
     }
-
-    public static Plugin getInstance() {
-        return instance;
+    
+    private void registerLoggerFilter() {
+        ((Logger)LogManager.getRootLogger()).addFilter(new AbstractFilter() {
+            
+            @Override
+            public org.apache.logging.log4j.core.Filter.Result filter(org.apache.logging.log4j.core.LogEvent event) {
+                return (event.getMessage() != null && event.getMessage().getFormattedMessage().contains("issued server command:") && StringUtils.containsAny(event.getMessage().getFormattedMessage(), COMMANDS_FILTER)) ? Result.DENY : Result.NEUTRAL;
+            };
+        });
     }
 }
