@@ -16,7 +16,6 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.*;
 import org.bukkit.plugin.EventExecutor;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -78,7 +77,8 @@ public class ChatExtras extends JavaPlugin {
                         clazz.equals(PlayerHideEntityEvent.class) ||
                         clazz.equals(PlayerStatisticIncrementEvent.class) ||
                         clazz.equals(PlayerVelocityEvent.class) || 
-                        clazz.equals(PlayerCommandPreprocessEvent.class)) // process conditionally
+                        clazz.equals(PlayerCommandPreprocessEvent.class) ||
+                        clazz.equals(PlayerPickupArrowEvent.class)) // process conditionally
                     continue;
                 
                 try {
