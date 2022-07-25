@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.filter.AbstractFilter;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventException;
 import org.bukkit.event.EventPriority;
@@ -26,7 +27,7 @@ import com.google.common.reflect.ClassPath.ClassInfo;
 public class ChatExtras extends JavaPlugin {
     
     public static ChatExtras instance;
-    private static final String[] COMMANDS_FILTER = new String[] {"/dm ", "/chatextras:dm ", "/r ", "/chatextras:r "};
+    private static final String[] WHISPER_FILTER = new String[] {"w ", "tell ", "msg ", "minecraft:w ", "minecraft:tell ", "minecraft:msg ", "dm ", "chatextras:dm ", "/r ", "/chatextras:r "};
     public static PlayerHolder playerHolder = new PlayerHolder();
     
     @Override
@@ -60,25 +61,27 @@ public class ChatExtras extends JavaPlugin {
                 
                 if (!PlayerEvent.class.isAssignableFrom(clazz)) continue;
                 
-                if (clazz.equals(PlayerAdvancementDoneEvent.class) ||
-                        clazz.equals(PlayerAnimationEvent.class) ||
-                        clazz.equals(PlayerChangedWorldEvent.class) ||
-                        clazz.equals(PlayerExpChangeEvent.class) ||
-                        clazz.equals(PlayerGameModeChangeEvent.class) ||
-                        clazz.equals(PlayerItemDamageEvent.class) ||
-                        clazz.equals(PlayerItemMendEvent.class) ||
-                        clazz.equals(PlayerKickEvent.class) ||
-                        clazz.equals(PlayerLevelChangeEvent.class) ||
-                        clazz.equals(PlayerMoveEvent.class) ||
-                        clazz.equals(PlayerPickupItemEvent.class) ||
-                        clazz.equals(PlayerQuitEvent.class) ||
-                        clazz.equals(PlayerRecipeDiscoverEvent.class) ||
-                        clazz.equals(PlayerShowEntityEvent.class) ||
-                        clazz.equals(PlayerHideEntityEvent.class) ||
-                        clazz.equals(PlayerStatisticIncrementEvent.class) ||
-                        clazz.equals(PlayerVelocityEvent.class) || 
-                        clazz.equals(PlayerCommandPreprocessEvent.class) ||
-                        clazz.equals(PlayerPickupArrowEvent.class)) // process conditionally
+                
+                if (PlayerAdvancementDoneEvent.class.isAssignableFrom(clazz) ||
+                        PlayerAnimationEvent.class.isAssignableFrom(clazz) ||
+                        PlayerChangedWorldEvent.class.isAssignableFrom(clazz) ||
+                        PlayerExpChangeEvent.class.isAssignableFrom(clazz) ||
+                        PlayerGameModeChangeEvent.class.isAssignableFrom(clazz) ||
+                        PlayerItemDamageEvent.class.isAssignableFrom(clazz) ||
+                        PlayerItemMendEvent.class.isAssignableFrom(clazz) ||
+                        PlayerKickEvent.class.isAssignableFrom(clazz) ||
+                        PlayerLevelChangeEvent.class.isAssignableFrom(clazz) ||
+                        PlayerMoveEvent.class.isAssignableFrom(clazz) ||
+                        PlayerPickupItemEvent.class.isAssignableFrom(clazz) ||
+                        PlayerQuitEvent.class.isAssignableFrom(clazz) ||
+                        PlayerRecipeDiscoverEvent.class.isAssignableFrom(clazz) ||
+                        PlayerShowEntityEvent.class.isAssignableFrom(clazz) ||
+                        PlayerHideEntityEvent.class.isAssignableFrom(clazz) ||
+                        PlayerStatisticIncrementEvent.class.isAssignableFrom(clazz) ||
+                        PlayerVelocityEvent.class.isAssignableFrom(clazz) ||
+                        PlayerCommandPreprocessEvent.class.isAssignableFrom(clazz) ||
+                        PlayerChannelEvent.class.isAssignableFrom(clazz) ||
+                        PlayerItemBreakEvent.class.isAssignableFrom(clazz)) // process conditionally
                     continue;
                 
                 try {
@@ -115,8 +118,37 @@ public class ChatExtras extends JavaPlugin {
             
             @Override
             public org.apache.logging.log4j.core.Filter.Result filter(org.apache.logging.log4j.core.LogEvent event) {
-                return (event.getMessage() != null && event.getMessage().getFormattedMessage().contains("issued server command:") && StringUtils.containsAny(event.getMessage().getFormattedMessage(), COMMANDS_FILTER)) ? Result.DENY : Result.NEUTRAL;
+                if (event.getMessage() != null && event.getMessage().getFormattedMessage().contains("issued server command:") && StringUtils.containsAny(event.getMessage().getFormattedMessage(), WHISPER_FILTER)) {
+                    Player commandSender = getPlayerFromMessage(event.getMessage().getFormattedMessage());
+                    boolean logToFile = true;
+                    Result result = Result.NEUTRAL;
+                    
+                    try {
+                        if (commandSender.hasPermission("chat.hidewhisper.all")) {
+                            result = Result.DENY;
+                            logToFile = false;
+                        } else if (commandSender.hasPermission("chat.hidewhisper.console")) {
+                            result = Result.DENY;
+                        }
+                    } catch (NullPointerException e) { } // player not found, ignore permissions and log
+                    
+                    if (logToFile) logToFile(event.getMessage().getFormattedMessage());
+                    
+                    return result;
+                }
+                
+                return Result.NEUTRAL;
             };
+            
+            private void logToFile(String formattedMessage) {
+                // TODO
+            }
+
+            private static Player getPlayerFromMessage(String message) {
+                String trimmed = message.substring(0, message.indexOf(" issued server command: "));
+                String[] split = trimmed.split(" ");
+                return Bukkit.getPlayer(split[split.length - 1]);
+            }
         });
     }
 }
