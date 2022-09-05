@@ -44,5 +44,4 @@ public class CommandCustomDirectMessage implements CommandExecutor {
         receiver.sendMessage(onReceivingEnd);
         return true;
     }
-
 }

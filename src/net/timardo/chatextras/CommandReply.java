@@ -15,7 +15,7 @@ public class CommandReply implements CommandExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         Player player = (Player)sender;
         
-        if (!ChatExtras.playerHolder.hasLastWhisper(player)) {
+        if (!ChatExtras.PLAYER_HOLDER.hasLastWhisper(player)) {
             sender.sendMessage(ChatColor.RED + "You have no one to reply to :(. Send a message first or receive one from your friend!");
             return true;
         }
@@ -25,18 +25,18 @@ public class CommandReply implements CommandExecutor {
             return true;
         }
         
-        Player receiver = Bukkit.getPlayer(ChatExtras.playerHolder.getLastWhisper(player));
+        Player receiver = Bukkit.getPlayer(ChatExtras.PLAYER_HOLDER.getLastWhisper(player));
         
         if (receiver != null) {
-            ChatExtras.playerHolder.setLastWhisper(player, receiver);
-            ChatExtras.playerHolder.setLastWhisper(receiver, player);
+            ChatExtras.PLAYER_HOLDER.setLastWhisper(player, receiver);
+            ChatExtras.PLAYER_HOLDER.setLastWhisper(receiver, player);
             
-            if (ChatExtras.playerHolder.isAfk(receiver)) {
+            if (ChatExtras.PLAYER_HOLDER.isAfk(receiver)) {
                 sender.sendMessage(ChatColor.GRAY + " * " + ChatColor.RESET + NametagEdit.getApi().getNametag(receiver).getPrefix() + receiver.getDisplayName() + ChatColor.GRAY + " is currently " + ChatColor.YELLOW + "AFK" + ChatColor.GRAY + " and may not see your message.");
             }
         }
         
-        player.performCommand("dm " + ChatExtras.playerHolder.getLastWhisper(player) + " " + String.join(" ", args));
+        player.performCommand("dm " + ChatExtras.PLAYER_HOLDER.getLastWhisper(player) + " " + String.join(" ", args));
         return true;
     }
 }

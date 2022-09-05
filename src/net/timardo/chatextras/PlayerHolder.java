@@ -9,6 +9,7 @@ import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import com.nametagedit.plugin.NametagEdit;
@@ -100,6 +101,21 @@ public class PlayerHolder {
         }
     }
     
+    public void sendAfkList(CommandSender receiver) {
+        String outputMessage = ChatColor.GRAY + "List of AFK players: " + ChatColor.RESET;
+        boolean first = true;
+        
+        for (Entry<UUID, PlayerData> entry : this.playerDataMap.entrySet()) {
+            if (entry.getValue().isAfk) {
+                Player player = Bukkit.getPlayer(entry.getKey());
+                outputMessage += (first ? "" : ", ") + entry.getValue().originalPrefix + player.getDisplayName() + ChatColor.RESET;
+                first = false;
+            }
+        }
+        
+        receiver.sendMessage(outputMessage);
+    }
+    
     private static class PlayerData {
         
         private boolean isAfk;
@@ -111,5 +127,4 @@ public class PlayerHolder {
             return !(this.lastWhisper == null || this.lastWhisper.isEmpty());
         }
     }
-
 }

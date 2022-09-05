@@ -1,5 +1,5 @@
 name: ChatExtras
-version: '1.4'
+version: '1.5'
 main: net.timardo.chatextras.ChatExtras
 api-version: 1.19
 authors: [ Timardo ]
@@ -15,3 +15,6 @@ commands:
    dm:
       description: Sends a fancy direct message
       usage: /<command> <player> <message>
+   listafk:
+      description: Lists all AFK players
+      usage: /<command>

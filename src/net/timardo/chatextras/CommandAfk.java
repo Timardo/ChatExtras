@@ -10,7 +10,7 @@ public class CommandAfk implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (sender instanceof Player player) {
-            ChatExtras.playerHolder.toggleAfk(player);
+            ChatExtras.PLAYER_HOLDER.toggleAfk(player);
             return true;
         }
         

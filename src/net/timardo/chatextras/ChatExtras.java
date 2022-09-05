@@ -4,12 +4,9 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
-import org.apache.logging.log4j.core.filter.AbstractFilter;
 import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventException;
 import org.bukkit.event.EventPriority;
@@ -26,9 +23,9 @@ import com.google.common.reflect.ClassPath.ClassInfo;
 
 public class ChatExtras extends JavaPlugin {
     
+    public static final PlayerHolder PLAYER_HOLDER = new PlayerHolder();
+    public static final ChatLogger CHAT_LOGGER = new ChatLogger();
     public static ChatExtras instance;
-    private static final String[] WHISPER_FILTER = new String[] {"w ", "tell ", "msg ", "minecraft:w ", "minecraft:tell ", "minecraft:msg ", "dm ", "chatextras:dm ", "/r ", "/chatextras:r "};
-    public static PlayerHolder playerHolder = new PlayerHolder();
     
     @Override
     public void onEnable() {
@@ -36,16 +33,28 @@ public class ChatExtras extends JavaPlugin {
         this.registerCommands();
         this.registerEventHandlers();
         this.registerLoggerFilter();
-        Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () -> playerHolder.checkAfkPlayers(), 0, 20);
+        Bukkit.getScheduler().scheduleSyncRepeatingTask(this, () -> PLAYER_HOLDER.checkAfkPlayers(), 0, 20);
         System.out.println("ChatExtras finished initialization");
+    }
+    
+    @Override
+    public void onDisable() {
+        WhisperFilter.shouldFilter = false; // disable this instance of WhisperFilter
+        CHAT_LOGGER.close();
     }
     
     private void registerCommands() {
         this.getCommand("afk").setExecutor(new CommandAfk());
         this.getCommand("r").setExecutor(new CommandReply());
         this.getCommand("dm").setExecutor(new CommandCustomDirectMessage());
+        this.getCommand("listafk").setExecutor(new CommandListAfk());
     }
 
+    /**
+     * Method registers handlers for all events that should cancel AFK status of a player. Because Bukkit
+     * has really stupid way of registering handlers this hacky solution is the cleanest way of not creating 40
+     * separate methods for each event
+     */
     @SuppressWarnings("deprecation")
     private void registerEventHandlers() {
         Bukkit.getPluginManager().registerEvents(new EventListener(), this);
@@ -53,15 +62,12 @@ public class ChatExtras extends JavaPlugin {
         try {
             System.out.println("Registering handlers...");
             ClassPath classPath = ClassPath.from(getClassLoader());
-            ImmutableSet<ClassInfo> classSet = classPath.getTopLevelClasses("org.bukkit.event.player");
+            ImmutableSet<ClassInfo> classSet = classPath.getTopLevelClasses("org.bukkit.event.player"); // get all player event classes
             
             for (ClassInfo info : classSet) {
                 String className = info.getName();
                 Class<?> clazz = Class.forName(className);
-                
-                if (!PlayerEvent.class.isAssignableFrom(clazz)) continue;
-                
-                
+                // filter all events that should not cancel player's AFK status
                 if (PlayerAdvancementDoneEvent.class.isAssignableFrom(clazz) ||
                         PlayerAnimationEvent.class.isAssignableFrom(clazz) ||
                         PlayerChangedWorldEvent.class.isAssignableFrom(clazz) ||
@@ -81,7 +87,8 @@ public class ChatExtras extends JavaPlugin {
                         PlayerVelocityEvent.class.isAssignableFrom(clazz) ||
                         PlayerCommandPreprocessEvent.class.isAssignableFrom(clazz) ||
                         PlayerChannelEvent.class.isAssignableFrom(clazz) ||
-                        PlayerItemBreakEvent.class.isAssignableFrom(clazz)) // process conditionally
+                        PlayerItemBreakEvent.class.isAssignableFrom(clazz) ||
+                        !PlayerEvent.class.isAssignableFrom(clazz)) // safety check
                     continue;
                 
                 try {
@@ -91,64 +98,26 @@ public class ChatExtras extends JavaPlugin {
                         
                         @Override
                         public void execute(Listener paramListener, Event paramEvent) throws EventException {
-                            ChatExtras.playerHolder.setPlayerAFK(((PlayerEvent)paramEvent).getPlayer(), false);
+                            ChatExtras.PLAYER_HOLDER.setPlayerAFK(((PlayerEvent)paramEvent).getPlayer(), false);
                         }
                     }, EventPriority.LOWEST, this, true));
                 } catch (NoSuchMethodException e) {
                     // ignore
                 }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();;
-        } catch (SecurityException e) {
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
-        } catch (InvocationTargetException e) {
+        } catch (IOException | ClassNotFoundException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
             e.printStackTrace();
         }
     }
     
+    /**
+     * The JVM still holds the old/original version of WhisperFilter instance and all classes that it refers to after unloading this plugin
+     * The WhisperFilter instance stays active until the server stops
+     * The shouldFilter boolean is set to false on plugin disable and turns this WhisperFilter instance off
+     * Too much reloads (1000+) of this plugin may cause slightly higher RAM usage as GC cannot remove the old instance of WhisperFilter
+     */
     private void registerLoggerFilter() {
-        ((Logger)LogManager.getRootLogger()).addFilter(new AbstractFilter() {
-            
-            @Override
-            public org.apache.logging.log4j.core.Filter.Result filter(org.apache.logging.log4j.core.LogEvent event) {
-                if (event.getMessage() != null && event.getMessage().getFormattedMessage().contains("issued server command:") && StringUtils.containsAny(event.getMessage().getFormattedMessage(), WHISPER_FILTER)) {
-                    Player commandSender = getPlayerFromMessage(event.getMessage().getFormattedMessage());
-                    boolean logToFile = true;
-                    Result result = Result.NEUTRAL;
-                    
-                    try {
-                        if (commandSender.hasPermission("chat.hidewhisper.all")) {
-                            result = Result.DENY;
-                            logToFile = false;
-                        } else if (commandSender.hasPermission("chat.hidewhisper.console")) {
-                            result = Result.DENY;
-                        }
-                    } catch (NullPointerException e) { } // player not found, ignore permissions and log
-                    
-                    if (logToFile) logToFile(event.getMessage().getFormattedMessage());
-                    
-                    return result;
-                }
-                
-                return Result.NEUTRAL;
-            };
-            
-            private void logToFile(String formattedMessage) {
-                // TODO
-            }
-
-            private static Player getPlayerFromMessage(String message) {
-                String trimmed = message.substring(0, message.indexOf(" issued server command: "));
-                String[] split = trimmed.split(" ");
-                return Bukkit.getPlayer(split[split.length - 1]);
-            }
-        });
+        ((Logger)LogManager.getRootLogger()).addFilter(new WhisperFilter());
+        WhisperFilter.shouldFilter = true;
     }
 }

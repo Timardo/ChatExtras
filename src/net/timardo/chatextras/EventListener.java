@@ -30,7 +30,7 @@ public class EventListener implements Listener {
             @Override
             public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
                 if (msg instanceof PacketPlayInFlying packet && packet.d()) { // hasRotation
-                    ChatExtras.playerHolder.setPlayerAFK(player, false);
+                    ChatExtras.PLAYER_HOLDER.setPlayerAFK(player, false);
                 }
                 
                 super.channelRead(ctx, msg);
@@ -43,7 +43,7 @@ public class EventListener implements Listener {
         Player player = quitEvent.getPlayer();
         Channel channel = ((CraftPlayer)player).getHandle().b.b.m;
         channel.eventLoop().submit(() -> channel.pipeline().remove("ChatExtras:" + player.getUniqueId().toString()));
-        ChatExtras.playerHolder.removePlayer(player);
+        ChatExtras.PLAYER_HOLDER.removePlayer(player);
     }
     
     @EventHandler
@@ -51,7 +51,7 @@ public class EventListener implements Listener {
         String fullMessage = commandEvent.getMessage().substring(1);
         
         if (!((fullMessage.startsWith("afk") && fullMessage.length() == 3) || fullMessage.startsWith("afk ") || fullMessage.startsWith("chatextras:afk"))) {
-            ChatExtras.playerHolder.setPlayerAFK(commandEvent.getPlayer(), false);
+            ChatExtras.PLAYER_HOLDER.setPlayerAFK(commandEvent.getPlayer(), false);
         }
         
         if (StringUtils.startsWithAny(fullMessage, WHISPER_COMMANDS)) { // a whisper command
@@ -63,13 +63,18 @@ public class EventListener implements Listener {
             Player receiver = Bukkit.getPlayer(args[1]);
             
             if (receiver != null) {
-                ChatExtras.playerHolder.setLastWhisper(sender, receiver);
-                ChatExtras.playerHolder.setLastWhisper(receiver, sender);
+                ChatExtras.PLAYER_HOLDER.setLastWhisper(sender, receiver);
+                ChatExtras.PLAYER_HOLDER.setLastWhisper(receiver, sender);
                 
-                if (ChatExtras.playerHolder.isAfk(receiver)) {
+                if (ChatExtras.PLAYER_HOLDER.isAfk(receiver)) {
                     sender.sendMessage(ChatColor.GRAY + " * " + ChatColor.RESET + NametagEdit.getApi().getNametag(receiver).getPrefix() + receiver.getDisplayName() + ChatColor.GRAY + " is currently " + ChatColor.YELLOW + "AFK" + ChatColor.GRAY + " and may not see your message.");
                 }
             }
         }
+    }
+    
+    @EventHandler
+    public void onChat(AsyncPlayerChatEvent chatEvent) {
+        ChatExtras.CHAT_LOGGER.log(chatEvent.getPlayer(), chatEvent.getMessage());
     }
 }
