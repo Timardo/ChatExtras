@@ -24,7 +24,7 @@ public class ChatLogger {
         this.checkDate();
         
         try {
-            this.writer.println(String.format("[%1s] %2s: %3s", LocalTime.now().truncatedTo(ChronoUnit.SECONDS).toString(), player.getDisplayName(), message));
+            this.writer.println(String.format("[%s] %s: %s", LocalTime.now().truncatedTo(ChronoUnit.SECONDS).toString(), player.getDisplayName(), message));
         } catch (NullPointerException e) { // NPE can be caused by null Player
             e.printStackTrace(); // TODO: fancy handling?
         }
@@ -47,6 +47,7 @@ public class ChatLogger {
             this.close();
             String fileName = this.latestDate.toString() + ".log";
             File logFile = new File(CHAT_LOGS_PATH + File.separator + fileName);
+            logFile.getParentFile().mkdirs();
             FileWriter writer = null;
             
             try {

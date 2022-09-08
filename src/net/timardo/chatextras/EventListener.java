@@ -6,6 +6,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.craftbukkit.v1_19_R1.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.*;
 
@@ -73,8 +74,9 @@ public class EventListener implements Listener {
         }
     }
     
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR) // make priority as high as possible to check if the chat event was cancelled and therefore should not be logged
     public void onChat(AsyncPlayerChatEvent chatEvent) {
+        if (chatEvent.isCancelled()) return;
         ChatExtras.CHAT_LOGGER.log(chatEvent.getPlayer(), chatEvent.getMessage());
     }
 }
